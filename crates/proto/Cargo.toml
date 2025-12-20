@@ -1,0 +1,28 @@
+[package]
+name = "compaction-proto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+compaction-common = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Storage
+opendal = { workspace = true }
+
+# gRPC
+tonic = { workspace = true }
+prost = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[lints]
+workspace = true

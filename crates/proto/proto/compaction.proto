@@ -1,0 +1,231 @@
+syntax = "proto3";
+
+package compaction;
+
+// Compaction Service - Main interface between planner and workers
+service CompactionService {
+    // Worker registration and heartbeat
+    rpc RegisterWorker(WorkerRegistrationRequest) returns (WorkerRegistrationResponse);
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+    // Task management
+    rpc SubmitTask(SubmitTaskRequest) returns (SubmitTaskResponse);
+    rpc GetTaskStatus(GetTaskStatusRequest) returns (GetTaskStatusResponse);
+    rpc CancelTask(CancelTaskRequest) returns (CancelTaskResponse);
+
+    // Streaming task results
+    rpc StreamTaskResult(stream TaskProgressUpdate) returns (TaskResultResponse);
+}
+
+// Planner Service - For external clients to trigger compaction
+service PlannerService {
+    // Plan compaction for a table
+    rpc PlanCompaction(PlanCompactionRequest) returns (PlanCompactionResponse);
+
+    // Execute planned compaction
+    rpc ExecuteCompaction(ExecuteCompactionRequest) returns (stream CompactionProgress);
+
+    // Get compaction status
+    rpc GetCompactionStatus(GetCompactionStatusRequest) returns (GetCompactionStatusResponse);
+}
+
+// Worker Registration
+message WorkerRegistrationRequest {
+    string worker_id = 1;
+    string address = 2;
+    uint32 max_concurrent_tasks = 3;
+    uint64 available_memory_bytes = 4;
+    repeated string capabilities = 5; // e.g., "parquet", "avro", "sorting"
+}
+
+message WorkerRegistrationResponse {
+    bool accepted = 1;
+    string message = 2;
+    uint32 heartbeat_interval_ms = 3;
+}
+
+// Heartbeat
+message HeartbeatRequest {
+    string worker_id = 1;
+    repeated string running_task_ids = 2;
+    double current_load = 3; // 0.0 - 1.0
+    WorkerMetrics metrics = 4;
+}
+
+message HeartbeatResponse {
+    bool acknowledged = 1;
+    repeated string tasks_to_cancel = 2;
+}
+
+message WorkerMetrics {
+    uint64 bytes_processed = 1;
+    uint64 rows_processed = 2;
+    uint64 files_written = 3;
+    uint64 active_memory_bytes = 4;
+}
+
+// Task Submission
+message SubmitTaskRequest {
+    string task_id = 1;
+    bytes task_payload = 2; // Serialized CompactionTask
+    uint32 priority = 3;
+    int64 deadline_timestamp = 4;
+}
+
+message SubmitTaskResponse {
+    bool accepted = 1;
+    string message = 2;
+    int64 estimated_start_time = 3;
+}
+
+// Task Status
+message GetTaskStatusRequest {
+    string task_id = 1;
+}
+
+message GetTaskStatusResponse {
+    string task_id = 1;
+    TaskState state = 2;
+    double progress = 3; // 0.0 - 1.0
+    string message = 4;
+    TaskMetrics metrics = 5;
+}
+
+enum TaskState {
+    TASK_STATE_UNKNOWN = 0;
+    TASK_STATE_PENDING = 1;
+    TASK_STATE_RUNNING = 2;
+    TASK_STATE_COMPLETED = 3;
+    TASK_STATE_FAILED = 4;
+    TASK_STATE_CANCELLED = 5;
+}
+
+message TaskMetrics {
+    uint64 input_bytes_read = 1;
+    uint64 output_bytes_written = 2;
+    uint64 rows_processed = 3;
+    uint32 files_written = 4;
+    uint64 elapsed_time_ms = 5;
+}
+
+// Task Cancellation
+message CancelTaskRequest {
+    string task_id = 1;
+    string reason = 2;
+}
+
+message CancelTaskResponse {
+    bool cancelled = 1;
+    string message = 2;
+}
+
+// Task Progress (streaming)
+message TaskProgressUpdate {
+    string task_id = 1;
+    double progress = 2;
+    TaskMetrics metrics = 3;
+    repeated OutputFile output_files = 4; // Files completed so far
+}
+
+message OutputFile {
+    string file_path = 1;
+    uint64 file_size_bytes = 2;
+    uint64 record_count = 3;
+}
+
+message TaskResultResponse {
+    string task_id = 1;
+    bool success = 2;
+    string error_message = 3;
+    repeated OutputFile output_files = 4;
+    TaskMetrics final_metrics = 5;
+}
+
+// Planner API
+message PlanCompactionRequest {
+    string table_identifier = 1;
+    CompactionStrategy strategy = 2;
+    PlanningOptions options = 3;
+}
+
+enum CompactionStrategy {
+    COMPACTION_STRATEGY_UNSPECIFIED = 0;
+    COMPACTION_STRATEGY_SMALL_FILES = 1;
+    COMPACTION_STRATEGY_FULL = 2;
+    COMPACTION_STRATEGY_FILES_WITH_DELETES = 3;
+}
+
+message PlanningOptions {
+    uint64 target_file_size_bytes = 1;
+    uint32 max_parallelism = 2;
+    uint64 small_file_threshold_bytes = 3;
+    bool dry_run = 4; // Plan only, don't execute
+}
+
+message PlanCompactionResponse {
+    string plan_id = 1;
+    uint32 task_count = 2;
+    uint64 total_input_bytes = 3;
+    uint64 estimated_output_bytes = 4;
+    repeated TaskSummary tasks = 5;
+}
+
+message TaskSummary {
+    string task_id = 1;
+    uint32 input_file_count = 2;
+    uint64 input_bytes = 3;
+    uint32 estimated_output_files = 4;
+}
+
+// Execute Compaction
+message ExecuteCompactionRequest {
+    string plan_id = 1;
+    bool wait_for_completion = 2;
+}
+
+message CompactionProgress {
+    string plan_id = 1;
+    uint32 tasks_total = 2;
+    uint32 tasks_completed = 3;
+    uint32 tasks_failed = 4;
+    uint32 tasks_running = 5;
+    double overall_progress = 6;
+    repeated TaskProgress task_progress = 7;
+}
+
+message TaskProgress {
+    string task_id = 1;
+    TaskState state = 2;
+    double progress = 3;
+}
+
+// Get Status
+message GetCompactionStatusRequest {
+    string plan_id = 1;
+}
+
+message GetCompactionStatusResponse {
+    string plan_id = 1;
+    CompactionState state = 2;
+    CompactionProgress progress = 3;
+    CompactionResult result = 4;
+}
+
+enum CompactionState {
+    COMPACTION_STATE_UNKNOWN = 0;
+    COMPACTION_STATE_PLANNING = 1;
+    COMPACTION_STATE_EXECUTING = 2;
+    COMPACTION_STATE_COMMITTING = 3;
+    COMPACTION_STATE_COMPLETED = 4;
+    COMPACTION_STATE_FAILED = 5;
+}
+
+message CompactionResult {
+    bool success = 1;
+    string error_message = 2;
+    uint32 files_removed = 3;
+    uint32 files_added = 4;
+    uint64 bytes_removed = 5;
+    uint64 bytes_added = 6;
+    uint64 total_time_ms = 7;
+}

@@ -1,0 +1,40 @@
+[package]
+name = "compaction-worker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+compaction-common = { workspace = true }
+compaction-proto = { workspace = true }
+
+# Async
+async-stream = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+
+# Data processing
+arrow = { workspace = true }
+datafusion = { workspace = true }
+iceberg = { workspace = true }
+iceberg-datafusion = { workspace = true }
+parquet = { workspace = true }
+
+# gRPC client
+tonic = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Utilities
+chrono = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
