@@ -154,6 +154,9 @@ fn build_s3_operator(config: &StorageConfig) -> Result<Operator> {
         builder = builder.region(region);
     }
 
+    // Check if static credentials are provided
+    let has_static_creds = config.options.contains_key("access_key_id");
+
     // Apply credentials if present
     if let Some(access_key) = config.options.get("access_key_id") {
         builder = builder.access_key_id(access_key);
@@ -163,6 +166,15 @@ fn build_s3_operator(config: &StorageConfig) -> Result<Operator> {
     }
     if let Some(session_token) = config.options.get("session_token") {
         builder = builder.session_token(session_token);
+    }
+
+    // When static credentials are provided, disable AWS credential chain
+    // to prevent opendal from trying to load credentials from environment,
+    // config files, or EC2 instance metadata (which causes InvalidTokenId with MinIO)
+    if has_static_creds {
+        builder = builder
+            .disable_config_load()
+            .disable_ec2_metadata();
     }
 
     // Apply additional options

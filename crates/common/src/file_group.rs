@@ -23,6 +23,8 @@ pub struct FileMetadata {
     pub project_field_ids: Vec<i32>,
     /// Equality IDs (for equality delete files)
     pub equality_ids: Option<Vec<i32>>,
+    /// Partition values (partition field name -> string representation of value)
+    pub partition_values: std::collections::HashMap<String, String>,
 }
 
 /// A group of files to be compacted together.

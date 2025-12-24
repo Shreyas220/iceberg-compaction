@@ -43,7 +43,7 @@ The goal is to design a new compaction service that combines the best of both wo
                     │
                     ▼
 ┌──────────────────────────────────────────┐
-│         Execution Engine                  │
+│         Execution Engine                 │
 ├──────────────────────────────────────────┤
 │  • DataFusionExecutor                    │
 │  • RollingIcebergWriter                  │

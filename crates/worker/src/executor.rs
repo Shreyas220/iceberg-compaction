@@ -1,9 +1,16 @@
 /*
  * Worker executor - orchestrates task execution.
+ *
+ * The executor is the top-level component that:
+ * - Receives compaction tasks
+ * - Delegates to the DataFusion engine for execution
+ * - Collects and reports metrics
+ * - Handles errors and produces task results
  */
 
-use compaction_common::{CompactionError, Result};
+use compaction_common::{CompactionError, CompactionMetrics, Result};
 use compaction_proto::{CompactionTask, CompactionTaskResult, TaskStats, TaskStatus};
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::datafusion::DataFusionEngine;
@@ -15,11 +22,14 @@ pub struct OutputFileInfo {
     pub file_path: String,
     pub file_size_bytes: u64,
     pub record_count: u64,
+    /// Partition values for this file (key -> string value)
+    pub partition_values: Option<std::collections::HashMap<String, String>>,
 }
 
 /// Executes compaction tasks.
 pub struct WorkerExecutor {
     engine: DataFusionEngine,
+    metrics: Option<Arc<CompactionMetrics>>,
 }
 
 impl WorkerExecutor {
@@ -27,6 +37,15 @@ impl WorkerExecutor {
     pub fn new() -> Self {
         Self {
             engine: DataFusionEngine::new(),
+            metrics: None,
+        }
+    }
+
+    /// Creates an executor with metrics enabled.
+    pub fn with_metrics(metrics: Arc<CompactionMetrics>) -> Self {
+        Self {
+            engine: DataFusionEngine::new().with_metrics(metrics.clone()),
+            metrics: Some(metrics),
         }
     }
 
@@ -67,6 +86,15 @@ impl WorkerExecutor {
         let input_bytes = task.file_group.input_total_bytes();
         let input_file_count = task.file_group.input_files_count();
 
+        // Record bytes read in metrics
+        if let Some(ref metrics) = self.metrics {
+            metrics.record_bytes_read(input_bytes);
+        }
+
+        // Get partition values from first input file (all files in group share partition)
+        let partition_values = task.file_group.data_files.first()
+            .map(|f| f.partition_values.clone());
+
         // Execute the compaction
         let (output_files, rows_processed) = self.engine.execute_compaction(&task).await?;
 
@@ -78,6 +106,7 @@ impl WorkerExecutor {
                     file_path: f.file_path().to_string(),
                     file_size_bytes: f.file_size_in_bytes() as u64,
                     record_count: f.record_count() as u64,
+                    partition_values: partition_values.clone(),
                 };
                 serde_json::to_string(&info)
             })

@@ -44,6 +44,27 @@ pub struct CompactionTask {
 
     /// File IO configuration (S3 credentials, etc.)
     pub file_io_config: FileIOConfig,
+
+    /// Commit mode: whether planner or worker commits the results
+    #[serde(default)]
+    pub commit_mode: CommitMode,
+}
+
+/// How compaction results should be committed.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub enum CommitMode {
+    /// Planner coordinates the commit (default, safer)
+    /// Workers return DataFile info, planner does atomic commit across all tasks
+    #[default]
+    PlannerCommit,
+
+    /// Workers commit their own results immediately
+    /// Faster but less coordinated - use with caution
+    WorkerCommit,
+
+    /// No commit - just write files and return metadata
+    /// Useful for dry-runs or when external orchestrator handles commits
+    NoCommit,
 }
 
 /// File IO configuration for accessing storage.

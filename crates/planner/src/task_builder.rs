@@ -3,7 +3,7 @@
  */
 
 use compaction_common::{ExecutionConfig, FileGroup, Result};
-use compaction_proto::{CompactionTask, FileIOConfig};
+use compaction_proto::{CommitMode, CompactionTask, FileIOConfig};
 use iceberg::table::Table;
 use uuid::Uuid;
 
@@ -17,6 +17,7 @@ pub struct TaskBuilder {
     output_location: String,
     file_io_config: FileIOConfig,
     execution_config: ExecutionConfig,
+    commit_mode: CommitMode,
 }
 
 impl TaskBuilder {
@@ -75,7 +76,14 @@ impl TaskBuilder {
             output_location,
             file_io_config,
             execution_config,
+            commit_mode: CommitMode::default(),
         })
+    }
+
+    /// Sets the commit mode for tasks built by this builder.
+    pub fn with_commit_mode(mut self, mode: CommitMode) -> Self {
+        self.commit_mode = mode;
+        self
     }
 
     /// Builds a CompactionTask from a FileGroup.
@@ -92,6 +100,7 @@ impl TaskBuilder {
             execution_config: self.execution_config.clone(),
             inline_deletes: None, // TODO: Populate for small deletes
             file_io_config: self.file_io_config.clone(),
+            commit_mode: self.commit_mode,
         }
     }
 

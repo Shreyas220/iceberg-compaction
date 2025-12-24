@@ -47,9 +47,12 @@ anyhow = "1.0"
 
 # Storage abstraction
 opendal = { version = "0.53", features = ["services-s3", "services-gcs", "services-azblob", "services-fs"] }
+object_store = { version = "0.12", features = ["aws"] }
+url = "2.5"
 
 # Utilities
 arrow = "56.2"
+bytes = "1.5"
 chrono = { version = "0.4", features = ["serde"] }
 derive_builder = "0.20"
 itertools = "0.13.0"
@@ -57,6 +60,10 @@ tempfile = "3.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.0", features = ["v7", "serde"] }
+
+# Benchmarking and profiling
+sysinfo = "0.32"
+memory-stats = "1.2"
 
 # gRPC (for distributed communication)
 tonic = "0.12"

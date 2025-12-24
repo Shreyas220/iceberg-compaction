@@ -82,6 +82,11 @@ impl FileSelector {
         let mut position_delete_map: HashMap<String, FileMetadata> = HashMap::new();
         let mut equality_delete_map: HashMap<String, FileMetadata> = HashMap::new();
 
+        // Extract partition values from the first data file (all files in a group share partition)
+        let shared_partition_values = data_files.first()
+            .map(|task| Self::extract_partition_values(task))
+            .unwrap_or_default();
+
         // Extract and deduplicate delete files
         for task in &data_files {
             for delete in &task.deletes {
@@ -92,6 +97,7 @@ impl FileSelector {
                     sequence_number: Some(delete.sequence_number),
                     project_field_ids: delete.project_field_ids.clone(),
                     equality_ids: delete.equality_ids.clone(),
+                    partition_values: HashMap::new(), // Delete files don't need partition values
                 };
 
                 match delete.data_file_content {
@@ -120,12 +126,30 @@ impl FileSelector {
                 sequence_number: Some(task.sequence_number),
                 project_field_ids: task.project_field_ids.clone(),
                 equality_ids: None,
+                partition_values: shared_partition_values.clone(),
             })
             .collect();
 
         FileGroup::new(data_metadata)
             .with_position_deletes(position_delete_map.into_values().collect())
             .with_equality_deletes(equality_delete_map.into_values().collect())
+    }
+
+    /// Extracts partition values from a FileScanTask.
+    ///
+    /// In production, this would parse the file path to extract partition values,
+    /// or access them from the manifest entry that produced this task.
+    fn extract_partition_values(_task: &FileScanTask) -> HashMap<String, String> {
+        // FileScanTask doesn't directly expose partition values in iceberg-rust 0.5+
+        // The partition information is available in the ManifestEntry that produced this task.
+        //
+        // For production use, partition values can be extracted from:
+        // 1. Parsing the file path (Hive-style partitions like /dt=2024-01-01/)
+        // 2. Reading the manifest file directly
+        // 3. Extending the scan to include partition info
+        //
+        // For now, we return an empty map and let the worker inherit from task context.
+        HashMap::new()
     }
 
     /// Calculates executor and output parallelism for a file group.

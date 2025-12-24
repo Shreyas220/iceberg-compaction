@@ -15,7 +15,9 @@ pub mod packer;
 pub mod table_provider;
 pub mod task_builder;
 
-pub use commit::{CommitCoordinator, CommitMode, CommitSummary, DataFileInfo};
+pub use commit::{CommitCoordinator, CommitSummary, DataFileInfo, PendingCommit};
+// Re-export CommitMode from proto for convenience
+pub use compaction_proto::CommitMode;
 pub use file_selection::{FileSelector, SelectionStrategy};
 pub use metadata::{AnchorStore, InMemoryAnchorStore, ManifestCache, SnapshotAnchor};
 pub use table_provider::{IcebergTableProvider, TableProvider};

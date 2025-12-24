@@ -44,7 +44,7 @@ impl FileScanProvider {
 
         // Get the directory containing the files
         // We'll use listing table pointed at the data directory
-        let file_paths: Vec<&str> = files.iter().map(|f| f.file_path.as_str()).collect();
+        let _file_paths: Vec<&str> = files.iter().map(|f| f.file_path.as_str()).collect();
 
         // For now, we use a simple approach: register each file
         // A more optimized approach would use a custom TableProvider

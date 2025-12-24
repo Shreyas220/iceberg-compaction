@@ -30,5 +30,30 @@ itertools = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
+[dev-dependencies]
+compaction-worker = { workspace = true }
+tracing-subscriber = { workspace = true }
+opendal = { workspace = true }
+url = { workspace = true }
+
+# For data generator example
+arrow = { workspace = true }
+parquet = { workspace = true }
+bytes = { workspace = true }
+
+# Memory profiling
+dhat = "0.3"
+
+[features]
+dhat-heap = []
+
+[[example]]
+name = "local_compaction"
+path = "examples/local_compaction.rs"
+
+[[example]]
+name = "data_generator"
+path = "examples/data_generator.rs"
+
 [lints]
 workspace = true

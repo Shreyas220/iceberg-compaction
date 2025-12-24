@@ -21,6 +21,12 @@ iceberg = { workspace = true }
 iceberg-datafusion = { workspace = true }
 parquet = { workspace = true }
 
+# Storage
+bytes = { workspace = true }
+opendal = { workspace = true }
+object_store = { workspace = true }
+url = { workspace = true }
+
 # gRPC client
 tonic = { workspace = true }
 
@@ -33,8 +39,19 @@ chrono = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
+# Memory allocator (critical for large Parquet row groups)
+tikv-jemallocator = "0.6"
+
 [dev-dependencies]
+opendal = { workspace = true }
 tempfile = { workspace = true }
+sysinfo = { workspace = true }
+memory-stats = { workspace = true }
+tikv-jemallocator = "0.6"
+
+[[example]]
+name = "compact_poc"
+path = "examples/compact_poc.rs"
 
 [lints]
 workspace = true

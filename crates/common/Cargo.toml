@@ -18,6 +18,9 @@ iceberg = { workspace = true }
 # Storage abstraction
 opendal = { workspace = true }
 
+# Async runtime (for retry with sleep)
+tokio = { workspace = true }
+
 # Utilities
 derive_builder = { workspace = true }
 uuid = { workspace = true }
